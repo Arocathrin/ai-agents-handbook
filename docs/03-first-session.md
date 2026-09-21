@@ -70,7 +70,7 @@ Approve the plan if it matches the brief. Watch the tool calls. When it reports 
 ```
 On PowerShell the last line is `python -m ledgerlite.cli --ledger t.json add --category "" --amount 5; echo "exit=$LASTEXITCODE"`.
 
-If everything matches, commit: `!git add -A && !git commit -m "feat(cli): reject non-positive amounts and empty categories"` (or run the git commands in a second terminal).
+If everything matches, commit from a second terminal (or with the `!` prefix): `git add -A && git commit -m "feat(cli): reject non-positive amounts and empty categories"`.
 
 ## Anatomy of the brief
 Look at what the directed brief contained. This is the template you will reuse in every chapter:
