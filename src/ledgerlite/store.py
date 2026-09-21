@@ -1,0 +1,37 @@
+from __future__ import annotations
+
+import json
+from collections.abc import Callable
+from pathlib import Path
+
+from .models import Entry
+
+SCHEMA_VERSION = 1
+
+# Maps a schema version to the function that upgrades a raw file dict to the next version.
+MIGRATIONS: dict[int, Callable[[dict], dict]] = {}
+
+
+def _migrate(data: dict) -> dict:
+    version = data.get("schema_version", 1)
+    while version < SCHEMA_VERSION:
+        data = MIGRATIONS[version](data)
+        version += 1
+        data["schema_version"] = version
+    return data
+
+
+def load(path: Path) -> list[Entry]:
+    """Load entries. A missing file is an empty ledger. A corrupt file is an error."""
+    if not path.exists():
+        return []
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data = _migrate(data)
+    return [Entry.from_dict(d) for d in data["entries"]]
+
+
+def save(path: Path, entries: list[Entry]) -> None:
+    payload = {"schema_version": SCHEMA_VERSION, "entries": [e.to_dict() for e in entries]}
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    tmp.replace(path)

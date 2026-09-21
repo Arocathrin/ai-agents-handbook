@@ -1,0 +1,13 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "guard-shell",
+      "description": "Audit every shell command the agent runs and block exfiltration patterns. Chapter 9.",
+      "trigger": "PreToolUse",
+      "matcher": "shell|execute_bash",
+      "action": { "type": "command", "command": "python scripts/guard.py" },
+      "timeout": 10
+    }
+  ]
+}

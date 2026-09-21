@@ -1,0 +1,23 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import date
+from decimal import Decimal
+
+
+@dataclass(frozen=True)
+class Entry:
+    """One ledger line. Amounts are Decimal, never float."""
+
+    day: date
+    category: str
+    amount: Decimal
+
+    def to_dict(self) -> dict:
+        return {"day": self.day.isoformat(), "category": self.category, "amount": str(self.amount)}
+
+    @classmethod
+    def from_dict(cls, d: dict) -> Entry:
+        return cls(
+            day=date.fromisoformat(d["day"]), category=d["category"], amount=Decimal(d["amount"])
+        )
