@@ -120,3 +120,16 @@ python scripts/verify.py
 
 
 
+## Chapter 4 Reflection
+
+I would merge the with-skill run because the `ledgerlite-migration` skill gives a precise, repeatable procedure for schema changes.
+
+Both the no-skill and with-skill runs produced a migration that passed verification, but the skill explicitly requires:
+- bumping the schema version by exactly one,
+- registering a pure migration function,
+- using required keys in `Entry.from_dict`,
+- adding a real previous-version fixture,
+- testing migration and the written schema version,
+- and avoiding CLI changes.
+
+If the no-skill approach were merged, a future schema change in 6 months could be implemented inconsistently. An agent might silently use `.get(..., default)` instead of requiring the migration, skip the previous-version fixture/test, or modify unrelated files. The skill preserves the migration procedure as a reusable repository rule.

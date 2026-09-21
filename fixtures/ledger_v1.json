@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "entries": [
+    {
+      "day": "2026-01-10",
+      "category": "food",
+      "amount": "350.00"
+    },
+    {
+      "day": "2026-01-15",
+      "category": "transport",
+      "amount": "80.50"
+    }
+  ]
+}
