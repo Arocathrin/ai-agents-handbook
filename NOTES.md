@@ -118,5 +118,9 @@ python scripts/verify.py
 
 ```
 
+Chapter 3 Reflection
 
+The naive run added validation/tests for cases I did not explicitly request, including invalid dates and non-numeric amounts, and it chose exit code 1.
+
+The directed brief's exact Rules, named tests, scope fence ("Do not change any other file"), and Definition of Done prevented those guesses in Round 2.
 
