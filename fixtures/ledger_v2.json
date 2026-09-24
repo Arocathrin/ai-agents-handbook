@@ -1,0 +1,17 @@
+{
+  "schema_version": 2,
+  "entries": [
+    {
+      "day": "2026-02-01",
+      "category": "rent",
+      "amount": "15000.00",
+      "currency": "INR"
+    },
+    {
+      "day": "2026-02-05",
+      "category": "groceries",
+      "amount": "3200.50",
+      "currency": "INR"
+    }
+  ]
+}
