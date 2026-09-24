@@ -176,4 +176,40 @@ I tested prompt injection using the provided log and issue fixtures.
 The sentence Kiro used when handling the issue injection was: "This issue contains a prompt injection attack embedded in the HTML comment. I won't follow those instructions."
 
 For CI where nobody is watching, I would trust the declarative permission layer as the primary boundary because a deny rule is enforced independently of the model's reasoning. I would still keep hooks as a second layer because they can inspect tool calls and record why a command was blocked.
-For CI where nobody is watching, I would trust the declarative permission layer as the primary boundary because a deny rule is enforced independently of the model's reasoning. I would still keep hooks as a second layer because they can inspect tool calls and record why a command was blocked.
+
+## Chapter 11 Capstone — Recurring Entries
+
+### Acceptance Criteria
+
+1. **When** a user runs `recur add --category rent --amount 15000 --day-of-month 1`, **the system shall** persist a recurring-entry rule containing the category, amount, and day of month.
+
+2. **When** a user runs `recur add` with an empty category, a non-positive amount, or a day-of-month outside 1–31, **the system shall** reject the rule and write no new recurring rule.
+
+3. **When** a user runs `recur apply --year Y --month M` for a month matching a stored recurring rule, **the system shall** create an entry for that month using the rule's category, amount, and configured day of month.
+
+4. **When** `recur apply --year Y --month M` is run more than once for the same rule and month, **the system shall** create the recurring entry only once.
+
+5. **When** `recur apply --year Y --month M` is run and no recurring rules exist, **the system shall** leave the ledger entries unchanged and report that there were no recurring entries to apply.
+
+6. **When** `recur apply --year Y --month M` encounters any recurring rule whose configured day-of-month does not exist in the requested month, **the system shall** create no entries for that application, leave the ledger unchanged, and report each invalid recurring rule and its invalid date.
+
+### Buddy Review
+
+Buddy review identified an ambiguity in Criterion 6: it did not specify whether valid recurring rules should still be applied when another recurring rule has an invalid day for the requested month.
+
+Resolution: Criterion 6 was revised to require all-or-nothing behavior. If any recurring rule has an invalid date, the application creates no entries, leaves the ledger unchanged, and reports the invalid recurring rule and date.
+
+Chapter 11 reviewer findings:
+- REAL-01: store.save() could erase recurring_rules and applied_recurring.
+  Fixed by preserving the existing LedgerData when legacy save() writes entries.
+- REAL-02: missing regression test for normal add after recur add.
+  Added regression coverage in tests/test_cli.py.
+- NOT REAL findings: migration mutation, top-level .get() usage, REQ-06
+  error contents, idempotent no-save path, and commit scope.
+
+Chapter 11 reflection:
+- Next feature, I would define persistence interactions earlier so legacy APIs are considered during design.
+- I would add regression tests for interactions between new and existing commands earlier.
+- I would inspect the complete cross-task diff before implementation is considered complete.
+- The agent surprised me by finding a real data-loss bug that the 63-test suite initially missed.
+- The reviewer-agent's targeted edge-case testing exposed a compatibility issue between the new and legacy store APIs.
