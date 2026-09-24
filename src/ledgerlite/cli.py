@@ -6,6 +6,7 @@ from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
+from . import recur as recur_mod
 from . import report, store, sync
 from .models import Entry
 
@@ -63,6 +64,57 @@ def cmd_sync(args: argparse.Namespace) -> int:
     return 0 if ok else 1
 
 
+# ---------------------------------------------------------------------------
+# recur sub-commands
+# ---------------------------------------------------------------------------
+
+def cmd_recur_add(args: argparse.Namespace) -> int:
+    """Validate inputs, persist a new recurring rule, report result."""
+    errors = recur_mod.validate_recur_add(
+        args.category,
+        args.amount,
+        args.day_of_month,
+    )
+    if errors:
+        for msg in errors:
+            print(f"error: {msg}", file=sys.stderr)
+        return 2
+
+    ledger = store.load_ledger(args.ledger)
+    ledger = recur_mod.add_rule(ledger, args.category, args.amount, args.day_of_month)
+    store.save_ledger(args.ledger, ledger)
+    print(
+        f"recurring rule added: {args.category} {args.amount}"
+        f" on day {args.day_of_month} of each month"
+    )
+    return 0
+
+
+def cmd_recur_apply(args: argparse.Namespace) -> int:
+    """Apply all recurring rules for the given year/month."""
+    ledger = store.load_ledger(args.ledger)
+
+    try:
+        updated, count = recur_mod.apply_rules(ledger, args.year, args.month)
+    except ValueError as exc:
+        # REQ-06: calendar validation failed — report offending rules to stderr.
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    if count == 0:
+        print(f"no recurring entries to apply for {args.year}-{args.month:02d}")
+        return 0
+
+    store.save_ledger(args.ledger, updated)
+    print(f"applied {count} recurring entr{'y' if count == 1 else 'ies'}"
+          f" for {args.year}-{args.month:02d}")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# Parser
+# ---------------------------------------------------------------------------
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="ledgerlite", description="Tiny expense ledger.")
     p.add_argument(
@@ -87,6 +139,22 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("sync", help="push the ledger to LedgerCloud")
     s.set_defaults(func=cmd_sync)
+
+    # recur — nested sub-parser
+    recur_p = sub.add_parser("recur", help="manage recurring entries")
+    recur_sub = recur_p.add_subparsers(dest="recur_command", required=True)
+
+    ra = recur_sub.add_parser("add", help="add a recurring entry rule")
+    ra.add_argument("--category", required=True)
+    ra.add_argument("--amount", required=True)
+    ra.add_argument("--day-of-month", dest="day_of_month", type=int, required=True)
+    ra.set_defaults(func=cmd_recur_add)
+
+    rap = recur_sub.add_parser("apply", help="apply recurring rules for a month")
+    rap.add_argument("--year", type=int, required=True)
+    rap.add_argument("--month", type=int, required=True)
+    rap.set_defaults(func=cmd_recur_apply)
+
     return p
 
 
