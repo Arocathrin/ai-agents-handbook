@@ -296,3 +296,41 @@ def test_recur_apply_one_invalid_blocks_all(tmp_path, capsys):
     # No entries at all — the valid rent rule must also have been blocked.
     data = store.load_ledger(ledger)
     assert data.entries == []
+
+
+def test_regular_add_preserves_recurring_rules(tmp_path, capsys):
+    """Regression: calling the normal 'add' command after 'recur add' must NOT
+    erase the recurring rule from disk (REAL-01 data-loss defect)."""
+    ledger = tmp_path / "l.json"
+
+    # Step 1: add a recurring rule.
+    code = main([
+        "--ledger", str(ledger),
+        "recur", "add",
+        "--category", "rent",
+        "--amount", "5000",
+        "--day-of-month", "1",
+    ])
+    assert code == 0
+    capsys.readouterr()
+
+    # Step 2: use the normal 'add' command to add a regular entry.
+    code = main([
+        "--ledger", str(ledger),
+        "add", "--day", "2026-03-15", "--category", "food", "--amount", "200",
+    ])
+    assert code == 0
+    capsys.readouterr()
+
+    # Step 3: the recurring rule must still be present on disk.
+    from ledgerlite.models import RecurringRule
+    data = store.load_ledger(ledger)
+    assert len(data.recurring_rules) == 1, (
+        "recurring rule was erased by the regular 'add' command"
+    )
+    rule = RecurringRule.from_dict(data.recurring_rules[0])
+    assert rule.category == "rent"
+
+    # Step 4: the regular entry must also be there.
+    assert len(data.entries) == 1
+    assert data.entries[0].category == "food"

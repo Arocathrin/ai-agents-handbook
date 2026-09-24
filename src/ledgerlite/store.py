@@ -96,5 +96,12 @@ def load(path: Path) -> list[Entry]:
 
 
 def save(path: Path, entries: list[Entry]) -> None:
-    """Save entries only (no recurring state).  Writes schema_version=SCHEMA_VERSION."""
-    save_ledger(path, LedgerData(entries=entries))
+    """Save entries only, preserving any existing recurring state on disk.
+
+    Loads the current ledger first so that recurring_rules and applied_recurring
+    are not erased when the legacy entry-only API is used alongside the recurring
+    API.  A missing file is treated as an empty ledger (same as load()).
+    """
+    ledger = load_ledger(path)
+    ledger.entries = entries
+    save_ledger(path, ledger)
