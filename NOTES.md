@@ -137,3 +137,24 @@ Both the no-skill and with-skill runs produced a migration that passed verificat
 - and avoiding CLI changes.
 
 If the no-skill approach were merged, a future schema change in 6 months could be implemented inconsistently. An agent might silently use `.get(..., default)` instead of requiring the migration, skip the previous-version fixture/test, or modify unrelated files. The skill preserves the migration procedure as a reusable repository rule.
+## Chapter 8 Reflection
+
+I reviewed the remote-sync agent PR and compared my findings with the reviewer agent.
+
+Human review findings:
+
+1. `src/ledgerlite/sync.py:11` — An API token is hardcoded in source code. Credentials should not be committed to the repository.
+2. `src/ledgerlite/store.py:43` — `except Exception` hides corrupt or invalid ledger errors by returning an empty ledger.
+3. `requirements.txt:3` — `requests` is unpinned, making dependency resolution less reproducible.
+4. `src/ledgerlite/cli.py:46` — The `--last` behavior was changed outside the remote-sync scope and now returns one fewer entry than requested.
+5. `tests/test_cli.py:21` — The existing test was weakened so the `--last` regression could pass.
+6. `src/ledgerlite/sync.py:19-23` — The complete ledger is sent to an external service without explicit user agreement or documented opt-in behavior.
+7. `src/ledgerlite/sync.py:19-25` — The new network behavior has no tests covering successful sync, failed responses, or network errors.
+
+The reviewer agent found the hardcoded token, external data transmission, dependency problem, missing sync tests, `--last` regression, and broad exception handling. It also identified the secret remaining in Git history and the missing `requests` declaration in `pyproject.toml`.
+
+The reviewer did not explicitly identify the weakened `test_cli.py` assertion as a separate finding. I updated the reviewer prompt to explicitly compare changed test assertions with their previous behavior and flag tests weakened to accommodate an implementation.
+
+Chapter 8 also exposed the difference between automated verification and human review: `python scripts/verify.py` passed, but the review identified security, privacy, scope, dependency, error-handling, and test-quality problems that the green test suite did not catch.
+
+The remote-sync PR was accidentally merged during the exercise instead of being closed without merging. I did not fabricate a review or pretend that the PR was closed unmerged.
